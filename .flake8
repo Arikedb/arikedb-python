@@ -1,0 +1,3 @@
+[flake8]
+exclude = .git,venv,arikedbpbuff_pb2.py,arikedbpbuff_pb2_grpc.py
+max-line-length = 130
