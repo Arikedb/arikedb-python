@@ -65,14 +65,14 @@ enum Event {
 
 enum StatusCode {
     OK = 0;
-    NOT_FOUND = 1;
-    PERMISSION_DENIED = 2;
-    MISSING_DATA = 3;
+    LICENSE_EXPIRED = 1;
+    LICENSE_LIMITS_EXCEEDED = 2;
+    SESSION_EXPIRED = 3;
     INTERNAL_ERROR = 4;
-    INVALID_VAR_TYPE = 5;
-    INVALID_EPOCH = 6;
-    EXISTS = 7;
-    UNAUTHORIZED = 8;
+    UNAUTHORIZED = 5;
+    UNAUTHENTICATED = 6;
+    COLLECTION_NOT_FOUND = 7;
+    INVALID_REQUEST = 8;
 }
 
 message VariableEvent {
