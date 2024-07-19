@@ -18,7 +18,7 @@ setup(
     author="Alejandro Alfonso",
     author_email="alejandroalfonso1994@gmail.com",
     license="MIT",
-    url="https://github.com/alejandroalfonsoyero/arikedb-python",
+    url="https://github.com/Arikedb/arikedb-python",
     packages=find_packages(exclude=['tests', 'demo']),
     include_package_data=True,
     install_requires=[r.strip() for r in open("requirements.txt").readlines()]
