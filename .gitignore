@@ -162,3 +162,9 @@ cython_debug/
 #.idea/
 
 main.py
+
+# Protobuff files
+arikedbpbuff_pb2_grpc.py
+arikedbpbuff_pb2.py
+arikedb/arikedbpbuff_pb2_grpc.py
+arikedb/arikedbpbuff_pb2.py
