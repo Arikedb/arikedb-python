@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import arikedbpbuff_pb2 as arikedbpbuff__pb2
+import arikedb.arikedbpbuff_pb2 as arikedbpbuff__pb2
 
 GRPC_GENERATED_VERSION = '1.65.1'
 GRPC_VERSION = grpc.__version__

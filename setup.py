@@ -12,7 +12,7 @@ with open('arikedb/__init__.py', 'r') as f:
 setup(
     name="arikedb",
     version=version,
-    description="Arikedb Python Client Library",
+    description="ArikeDB Python Client Library",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Alejandro Alfonso",

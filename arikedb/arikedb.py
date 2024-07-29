@@ -1,21 +1,22 @@
 from __future__ import annotations
-
 from enum import Enum
 from threading import Thread
 from typing import Any, Callable, Iterable, List, Optional, Union
+
 import grpc
-from arikedbpbuff_pb2 import CreateCollectionsRequest
-from arikedbpbuff_pb2 import DeleteCollectionsRequest
-from arikedbpbuff_pb2 import ListCollectionsRequest
-from arikedbpbuff_pb2 import CreateVariablesRequest
-from arikedbpbuff_pb2 import DeleteVariablesRequest
-from arikedbpbuff_pb2 import ListVariablesRequest
-from arikedbpbuff_pb2 import SetVariablesRequest
-from arikedbpbuff_pb2 import GetVariablesRequest
-from arikedbpbuff_pb2 import SubscribeVariablesRequest
-from arikedbpbuff_pb2 import AuthenticateRequest
-from arikedbpbuff_pb2 import VariableMeta, CollectionMeta, VariableEvent
-import arikedbpbuff_pb2_grpc
+
+from .arikedbpbuff_pb2_grpc import ArikedbRPCStub
+from .arikedbpbuff_pb2 import CreateCollectionsRequest
+from .arikedbpbuff_pb2 import DeleteCollectionsRequest
+from .arikedbpbuff_pb2 import ListCollectionsRequest
+from .arikedbpbuff_pb2 import CreateVariablesRequest
+from .arikedbpbuff_pb2 import DeleteVariablesRequest
+from .arikedbpbuff_pb2 import ListVariablesRequest
+from .arikedbpbuff_pb2 import SetVariablesRequest
+from .arikedbpbuff_pb2 import GetVariablesRequest
+from .arikedbpbuff_pb2 import SubscribeVariablesRequest
+from .arikedbpbuff_pb2 import AuthenticateRequest
+from .arikedbpbuff_pb2 import VariableMeta, CollectionMeta, VariableEvent
 
 
 class Epoch(Enum):
@@ -156,17 +157,58 @@ class ArikedbClient:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.disconnect()
 
-    def connect(
-        self,
-        host: str = "127.0.0.1",
-        port: int = 6923,
-        use_ssl: bool = False
-    ) -> ArikedbClient:
+    def connect(self,
+                host: str = "127.0.0.1",
+                port: int = 6923,
+                use_ssl_tls: bool = False,
+                ca_path: Optional[str] = None,
+                cert_path: Optional[str] = None,
+                key_path: Optional[str] = None) -> 'ArikedbClient':
+        """ Connect to the ArikeDB server.
 
-        url = f"{host}:{port}" if not use_ssl else f"https://{host}:{port}"
-        self._channel = grpc.insecure_channel(url)
-        self._stub = arikedbpbuff_pb2_grpc.ArikedbRPCStub(self._channel)
+        Args:
+            host (str, optional): The hostname or IP address of the ArikeDB server. Defaults to "127.0.0.1".
+            port (int, optional): The port number on which the ArikeDB server is listening. Defaults to 6923.
+            use_ssl_tls (bool, optional): Whether to use SSL/TLS for the connection. Defaults to False.
+            ca_path (Optional[str], optional): The file path to the Certificate Authority (CA) certificate.
+                                               Required if use_ssl_tls is True. Defaults to None.
+            cert_path (Optional[str], optional): The file path to the client certificate.
+                                                 Required if use_ssl_tls is True and the server requires it.
+                                                 Defaults to None.
+            key_path (Optional[str], optional): The file path to the client private key.
+                                                Required if use_ssl_tls is True and the server requires it.
+                                                Defaults to None.
 
+        Returns:
+            ArikedbClient: ArikedbClient instance.
+        """
+
+        url = f"{host}:{port}"
+
+        _root_certificates: Optional[bytes] = None
+        _private_key: Optional[bytes] = None
+        _certificate_chain: Optional[bytes] = None
+
+        if use_ssl_tls:
+            if ca_path:
+                with open(ca_path, 'rb') as f:
+                    _root_certificates = f.read()
+                if cert_path:
+                    with open(cert_path, 'rb') as f:
+                        _certificate_chain = f.read()
+                if key_path:
+                    with open(key_path, 'rb') as f:
+                        _private_key = f.read()
+                credentials = grpc.ssl_channel_credentials(root_certificates=_root_certificates,
+                                                           private_key=_private_key,
+                                                           certificate_chain=_certificate_chain)
+            else:
+                credentials = grpc.ssl_channel_credentials()
+            self._channel = grpc.secure_channel(url, credentials)
+        else:
+            self._channel = grpc.insecure_channel(url)
+
+        self._stub = ArikedbRPCStub(self._channel)
         return self
 
     def disconnect(
