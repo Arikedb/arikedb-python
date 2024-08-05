@@ -1,4 +1,4 @@
-# Arikedb Python Library
+# ArikeDB Python Library
 
 Welcome to the ArikeDB Python library! This library provides an interface to interact with the Arike Database, an advanced real-time database solution. This documentation will guide you through the process of setting up and using the library effectively.
 
