@@ -1,0 +1,73 @@
+syntax = "proto3";
+package arike_pb;
+
+import "arike_utils.proto";
+
+message StackMeta {
+    string name = 1;
+    ValType val_type = 2;
+}
+
+message StackNamesCount {
+    string name = 1;
+    uint32 n = 2;
+}
+
+message StackValue {
+    string name = 1;
+    optional ValType val_type = 2;
+    repeated int64 int_value = 3;
+    repeated double float_value = 4;
+    repeated string str_value = 5;
+    repeated bool bool_value = 6;
+}
+
+message CreateStacksRequest {
+    string collection = 1;
+    repeated StackMeta stacks = 2;
+}
+
+message CreateStacksResponse {
+    StatusCode status = 1;
+    repeated string already_exists = 2;
+}
+
+message DeleteStacksRequest {
+    string collection = 1;
+    repeated string names = 2;
+}
+
+message DeleteStacksResponse {
+    StatusCode status = 1;
+    repeated string not_found = 2;
+}
+
+message ListStacksRequest {
+    string collection = 1;
+}
+
+message ListStacksResponse {
+    StatusCode status = 1;
+    repeated StackMeta stacks = 2;
+}
+
+message PutStacksRequest {
+    string collection = 1;
+    repeated StackValue values = 2;
+}
+
+message PutStacksResponse {
+    StatusCode status = 1;
+    repeated string not_found = 2;
+    repeated string invalid_type = 3;
+}
+
+message PopStacksRequest {
+    string collection = 1;
+    repeated StackNamesCount names_counts = 2;
+}
+
+message PopStacksResponse {
+    StatusCode status = 1;
+    repeated StackValue values = 2;
+}

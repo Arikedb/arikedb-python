@@ -2,15 +2,20 @@
 
 set -e
 
-python -m grpc_tools.protoc -I=proto --python_out=. --grpc_python_out=. proto/arikedbpbuff.proto
+python -m grpc_tools.protoc -I=proto --python_out=. --grpc_python_out=. proto/arike_main.proto
+python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_auth.proto
+python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_collection.proto
+python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_ts_variable.proto
+python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_stack.proto
+python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_utils.proto
 
-cp arikedbpbuff_pb2.py arikedb/
-cp arikedbpbuff_pb2_grpc.py arikedb/
+mv *_pb2.py arikedb/
+mv *_pb2_grpc.py arikedb/
 
-sed -i 's/import arikedbpbuff_pb2 as arikedbpbuff__pb2/import arikedb.arikedbpbuff_pb2 as arikedbpbuff__pb2/g' arikedb/arikedbpbuff_pb2_grpc.py
+sed -i 's/import arike_/import arikedb.arike_/g' arikedb/arike_*_pb2*.py
 
-rm -rf dist build
+# rm -rf dist build
 
-python3 setup.py sdist bdist_wheel
+# python3 setup.py sdist bdist_wheel
 
-twine upload dist/*
+# twine upload dist/*

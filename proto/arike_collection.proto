@@ -1,0 +1,34 @@
+syntax = "proto3";
+package arike_pb;
+
+import "arike_utils.proto";
+
+message CollectionMeta {
+    string name = 1;
+}
+
+message CreateCollectionsRequest {
+    repeated CollectionMeta collections = 1;
+}
+
+message CreateCollectionsResponse {
+    StatusCode status = 1;
+    repeated string already_exists = 2;
+    repeated string license_exceeded = 3;
+}
+
+message DeleteCollectionsRequest {
+    repeated string names = 1;
+}
+
+message DeleteCollectionsResponse {
+    StatusCode status = 1;
+    repeated string not_found = 2;
+}
+
+message ListCollectionsRequest {}
+
+message ListCollectionsResponse {
+    StatusCode status = 1;
+    repeated CollectionMeta collections = 2;
+}
