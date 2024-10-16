@@ -1,15 +1,17 @@
 from __future__ import annotations
+from threading import Thread
 from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import grpc
 
-from .common import TsVarType, StkType, Status
+from .common import TsVarType, StkType, Status, VarEvent
 from .arike_main_pb2_grpc import ArikedbRPCStub
 from .arike_collection_pb2 import CollectionMeta, ListCollectionsRequest, CreateCollectionsRequest, DeleteCollectionsRequest
 from .arike_ts_variable_pb2 import TsVariableMeta, ListVariablesRequest, CreateVariablesRequest, DeleteVariablesRequest, \
-    SetVariablesRequest, GetVariablesRequest, TsVarValue
+    SetVariablesRequest, GetVariablesRequest, SubscribeVariablesRequest, TsVarValue, VariableEvent
 from .arike_stack_pb2 import StackMeta, ListStacksRequest, CreateStacksRequest, DeleteStacksRequest, \
     PutStacksRequest, PopStacksRequest, StackValue, StackNamesCount
+from .arike_utils_pb2 import ValType
 
 
 class TsVariable:
@@ -28,11 +30,6 @@ class TsVariable:
         value: Union[int, float, str, bool],
         timestamp_ns: Optional[int] = None
     ) -> Dict[str, List[str]]:
-        assert (isinstance(value, int) and self.vtype == TsVarType.TsInt) or \
-               (isinstance(value, float) and self.vtype == TsVarType.TsFloat) or \
-               (isinstance(value, str) and self.vtype == TsVarType.TsString) or \
-               (isinstance(value, bool) and self.vtype == TsVarType.TsBool)
-
         return self.collection.ts_variables_set([(self.name, value, timestamp_ns)])
 
     def get(
@@ -52,6 +49,18 @@ class Stack:
         self.name = name
         self.stktype = stktype
         self.collection = collection
+
+    def put(
+        self,
+        values: Iterable[Union[int, float, str, bool]],
+    ) -> Dict[str, List[str]]:
+        return self.collection.stacks_put([(self.name, values)])
+
+    def pop(
+        self,
+        n: Optional[int] = None
+    ) -> Tuple[str, List[Union[int, float, str, bool]]]:
+        return self.collection.stacks_pop([(self.name, n or 1)])[0]
 
 
 class Collection:
@@ -182,6 +191,66 @@ class Collection:
             values.append(val_tup)
 
         return values
+
+    def variables_subscribe(
+        self,
+        names: Iterable[str],
+        events: Iterable[VarEvent],
+        callback: Callable,
+        callback_args: Optional[tuple] = None,
+        callback_kwargs: Optional[dict] = None,
+        thread_kwargs: Optional[dict] = None,
+    ) -> Thread:
+
+        callback_args = callback_args or ()
+        callback_kwargs = callback_kwargs or {}
+
+        thread_kwargs = thread_kwargs or {}
+
+        metadata = tuple() if not self.client._token else (('authorization', self.client._token),)
+
+        def _wrapper():
+            for response in self.client._stub.SubscribeVariables(
+                SubscribeVariablesRequest(
+                    collection=self.name,
+                    names=names,
+                    events=[
+                        VariableEvent(
+                            event=e.event.value,
+                            str_value=e.str_value,
+                            str_low_limit=e.str_low_limit,
+                            str_high_limit=e.str_high_limit,
+                            int_value=e.int_value,
+                            int_low_limit=e.int_low_limit,
+                            int_high_limit=e.int_high_limit,
+                            float_value=e.float_value,
+                            float_low_limit=e.float_low_limit,
+                            float_high_limit=e.float_high_limit,
+                            bool_value=e.bool_value,
+                            bool_low_limit=e.bool_low_limit,
+                            bool_high_limit=e.bool_high_limit
+                        ) for e in events
+                    ]
+                ),
+                metadata=metadata
+            ):
+                if response.val_type == ValType.TS_INT:
+                    value = response.int_value
+                elif response.val_type == ValType.TS_FLOAT:
+                    value = response.float_value
+                elif response.val_type == ValType.TS_STRING:
+                    value = response.str_value
+                elif response.val_type == ValType.TS_BOOL:
+                    value = response.bool_value
+                callback(
+                    (response.name, response.timestamp, value),
+                    *callback_args,
+                    **callback_kwargs
+                )
+
+        t = Thread(target=_wrapper, **thread_kwargs)
+        t.start()
+        return t
 
     def stacks(
         self
@@ -336,7 +405,7 @@ class Arikedb:
         """
         self._channel = None
         self._stub = None
-        self._tOken = None
+        self._token = None
         self._host = host
         self._port = port
         self._use_ssl_tls = use_ssl_tls
@@ -391,7 +460,7 @@ class Arikedb:
         self._channel.close()
         self._channel = None
         self._stub = None
-        self._tOken = None
+        self._token = None
 
     def _exec_request(
         self,
@@ -402,12 +471,12 @@ class Arikedb:
     ):
         request_kwargs = {} if request_kwargs is None else request_kwargs
         request = request_class(**request_kwargs)
-        metadata = tuple() if (not add_meta or not self._tOken) else (('authorization', self._tOken),)
+        metadata = tuple() if (not add_meta or not self._token) else (('authorization', self._token),)
         response, call = method.with_call(request, metadata=metadata)
 
         resp_metadata = dict(call.initial_metadata())
-        if "refresh_tOken" in resp_metadata:
-            self._tOken = resp_metadata["refresh_tOken"]
+        if "refresh_token" in resp_metadata:
+            self._token = resp_metadata["refresh_token"]
 
         return response
 

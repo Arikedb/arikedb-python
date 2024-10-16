@@ -1,5 +1,5 @@
 from .arikedb import Collection, Arikedb, TsVariable, Stack
-from .common import TsVarType, StkType
+from .common import TsVarType, StkType, Event, VarEvent
 
 __version__ = "0.0.5"
 
@@ -11,4 +11,6 @@ __all__ = [
     "Stack",
     "TsVarType",
     "StkType",
+    "Event",
+    "VarEvent",
 ]

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 
 class TsVarType(Enum):
@@ -14,6 +14,26 @@ class StkType(Enum):
     StkFloat = 5
     StkString = 6
     StkBool = 7
+
+
+class Event(Enum):
+    OnSet = 0
+    OnChange = 1
+    OnKeep = 2
+    OnRise = 3
+    OnFall = 4
+    OnValueReachVal = 5
+    OnValueEqVal = 6
+    OnValueLeaveVal = 7
+    OnValueDiffVal = 8
+    OnCrossHighLimit = 9
+    OnCrossLowLimit = 10
+    OnOverHighLimit = 11
+    OnUnderLowLimit = 12
+    OnValueReachRange = 13
+    OnValueInRange = 14
+    OnValueLeaveRange = 15
+    OnValueOutRange = 16
 
 
 class Status(Enum):
@@ -55,6 +75,38 @@ class Status(Enum):
                 return TypeError
             case 11:
                 return Unknown
+
+
+class VarEvent:
+    def __init__(
+        self,
+        event: Event,
+        str_value: Optional[str] = None,
+        str_low_limit: Optional[str] = None,
+        str_high_limit: Optional[str] = None,
+        int_value: Optional[int] = None,
+        int_low_limit: Optional[int] = None,
+        int_high_limit: Optional[int] = None,
+        float_value: Optional[float] = None,
+        float_low_limit: Optional[float] = None,
+        float_high_limit: Optional[float] = None,
+        bool_value: Optional[bool] = None,
+        bool_low_limit: Optional[bool] = None,
+        bool_high_limit: Optional[bool] = None,
+    ):
+        self.event = event
+        self.str_value = str_value
+        self.str_low_limit = str_low_limit
+        self.str_high_limit = str_high_limit
+        self.int_value = int_value
+        self.int_low_limit = int_low_limit
+        self.int_high_limit = int_high_limit
+        self.float_value = float_value
+        self.float_low_limit = float_low_limit
+        self.float_high_limit = float_high_limit
+        self.bool_value = bool_value
+        self.bool_low_limit = bool_low_limit
+        self.bool_high_limit = bool_high_limit
 
 
 class LicenseExpired(Exception):
