@@ -4,13 +4,17 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import grpc
 
-from .common import TsVarType, StkType, Status, VarEvent
+from .common import ValueType, Status, VarEvent
 from .arike_main_pb2_grpc import ArikedbRPCStub
 from .arike_collection_pb2 import CollectionMeta, ListCollectionsRequest, CreateCollectionsRequest, DeleteCollectionsRequest
 from .arike_ts_variable_pb2 import TsVariableMeta, ListVariablesRequest, CreateVariablesRequest, DeleteVariablesRequest, \
     SetVariablesRequest, GetVariablesRequest, SubscribeVariablesRequest, TsVarValue, VariableEvent
 from .arike_stack_pb2 import StackMeta, ListStacksRequest, CreateStacksRequest, DeleteStacksRequest, \
     PutStacksRequest, PopStacksRequest, StackValue, StackNamesCount
+from .arike_fifo_pb2 import FifoMeta, ListFifosRequest, CreateFifosRequest, DeleteFifosRequest, \
+    PushFifosRequest, PullFifosRequest, FifoValue, FifoNamesCount
+from .arike_sorted_list_pb2 import SortedListMeta, ListSortedListsRequest, CreateSortedListsRequest, DeleteSortedListsRequest, \
+    InsertSortedListsRequest, BiggestSortedListsRequest, SmallestSortedListsRequest, SortedListValue, SortedListNamesCount
 from .arike_utils_pb2 import ValType
 
 
@@ -18,7 +22,7 @@ class TsVariable:
     def __init__(
         self,
         name: str,
-        vtype: TsVarType,
+        vtype: ValueType,
         collection: Collection
     ):
         self.name = name
@@ -39,16 +43,21 @@ class TsVariable:
         return val[0] if val else None
 
 
-class Stack:
+class Array:
     def __init__(
         self,
         name: str,
-        stktype: StkType,
-        collection: Collection
+        vtype: ValueType,
+        size: int,
+        collection: Collection,
     ):
         self.name = name
-        self.stktype = stktype
+        self.vtype = vtype
+        self.size = size
         self.collection = collection
+
+
+class Stack(Array):
 
     def put(
         self,
@@ -63,7 +72,46 @@ class Stack:
         return self.collection.stacks_pop([(self.name, n or 1)])[0]
 
 
+class Fifo(Array):
+
+    def push(
+        self,
+        values: Iterable[Union[int, float, str, bool]],
+    ) -> Dict[str, List[str]]:
+        return self.collection.fifos_push([(self.name, values)])
+
+    def pull(
+        self,
+        n: Optional[int] = None
+    ) -> Tuple[str, List[Union[int, float, str, bool]]]:
+        return self.collection.fifos_pull([(self.name, n or 1)])[0]
+
+
+class SortedList(Array):
+
+    def insert(
+        self,
+        values: Iterable[Union[int, float, str, bool]],
+    ) -> Dict[str, List[str]]:
+        return self.collection.sorted_lists_insert([(self.name, values)])
+
+    def biggest(
+        self,
+        n: Optional[int] = None,
+        remove: bool = False
+    ) -> Tuple[str, List[Union[int, float, str, bool]]]:
+        return self.collection.sorted_lists_biggest([(self.name, n or 1)], remove)[0]
+
+    def smallest(
+        self,
+        n: Optional[int] = None,
+        remove: bool = False
+    ) -> Tuple[str, List[Union[int, float, str, bool]]]:
+        return self.collection.sorted_lists_smallest([(self.name, n or 1)], remove)[0]
+
+
 class Collection:
+
     def __init__(
         self,
         name: str,
@@ -84,11 +132,11 @@ class Collection:
         status = Status(response.status)
         if status != Status.Ok:
             raise status.as_exception("Failed to listing variables")
-        return [TsVariable(v.name, TsVarType(v.val_type), self) for v in response.variables]
+        return [TsVariable(v.name, ValueType(v.val_type), self) for v in response.variables]
 
     def create_ts_variables(
         self,
-        variables: Iterable[Tuple[str, TsVarType]]
+        variables: Iterable[Tuple[str, ValueType]]
     ) -> Dict[str, List[str]]:
 
         response = self.client._exec_request(
@@ -178,13 +226,13 @@ class Collection:
 
         values = []
         for v in response.values:
-            if v.val_type == TsVarType.TsInt.value:
+            if v.val_type == ValueType.Int.value:
                 val_tup = (v.name, v.timestamp, v.int_value)
-            elif v.val_type == TsVarType.TsFloat.value:
+            elif v.val_type == ValueType.Float.value:
                 val_tup = (v.name, v.timestamp, v.float_value)
-            elif v.val_type == TsVarType.TsString.value:
+            elif v.val_type == ValueType.String.value:
                 val_tup = (v.name, v.timestamp, v.str_value)
-            elif v.val_type == TsVarType.TsBool.value:
+            elif v.val_type == ValueType.Bool.value:
                 val_tup = (v.name, v.timestamp, v.bool_value)
             else:
                 continue
@@ -234,13 +282,13 @@ class Collection:
                 ),
                 metadata=metadata
             ):
-                if response.val_type == ValType.TS_INT:
+                if response.val_type == ValType.INT:
                     value = response.int_value
-                elif response.val_type == ValType.TS_FLOAT:
+                elif response.val_type == ValType.FLOAT:
                     value = response.float_value
-                elif response.val_type == ValType.TS_STRING:
+                elif response.val_type == ValType.STRING:
                     value = response.str_value
-                elif response.val_type == ValType.TS_BOOL:
+                elif response.val_type == ValType.BOOL:
                     value = response.bool_value
                 callback(
                     (response.name, response.timestamp, value),
@@ -264,18 +312,18 @@ class Collection:
         status = Status(response.status)
         if status != Status.Ok:
             raise status.as_exception("Failed listing stacks")
-        return [Stack(s.name, StkType(s.val_type), self) for s in response.stacks]
+        return [Stack(s.name, ValueType(s.val_type), s.max_size, self) for s in response.stacks]
 
     def create_stacks(
         self,
-        stacks: Iterable[Tuple[str, StkType]]
+        stacks: Iterable[Tuple[str, ValueType, Optional[int]]]
     ) -> Dict[str, List[str]]:
 
         response = self.client._exec_request(
             self.client._stub.CreateStacks,
             CreateStacksRequest,
             {"collection": self.name,
-             "stacks": [StackMeta(name=name, val_type=stk.value) for name, stk in stacks]}
+             "stacks": [StackMeta(name=name, val_type=vtype.value, max_size=max_size) for name, vtype, max_size in stacks]}
         )
 
         status = Status(response.status)
@@ -307,7 +355,7 @@ class Collection:
     def stacks_put(
         self,
         values: Iterable[Tuple[str, Iterable[Union[int, float, str, bool]]]]
-    ) -> Dict[str, List[str]]:
+    ) -> Dict:
 
         stk_values = []
         types_map = {
@@ -316,11 +364,13 @@ class Collection:
             str: "str_value",
             bool: "bool_value",
         }
+        names = []
         for name, vals in values:
             if not vals:
                 continue
             kw = {"name": name, types_map[type(vals[0])]: vals}
             stk_values.append(StackValue(**kw))
+            names.append(name)
 
         req_kw = {"collection": self.name, "values": stk_values}
         response = self.client._exec_request(
@@ -335,7 +385,8 @@ class Collection:
 
         return {
             "not_found": response.not_found,
-            "invalid_type": response.invalid_type
+            "invalid_type": response.invalid_type,
+            "non_inserted": {name: ni for name, ni in zip(names, response.non_inserted)}
         }
 
     def stacks_pop(
@@ -363,13 +414,311 @@ class Collection:
 
         values = []
         for v in response.values:
-            if v.val_type == StkType.StkInt.value:
+            if v.val_type == ValueType.Int.value:
                 val_tup = (v.name, v.int_value)
-            elif v.val_type == StkType.StkFloat.value:
+            elif v.val_type == ValueType.Float.value:
                 val_tup = (v.name, v.float_value)
-            elif v.val_type == StkType.StkString.value:
+            elif v.val_type == ValueType.String.value:
                 val_tup = (v.name, v.str_value)
-            elif v.val_type == StkType.StkBool.value:
+            elif v.val_type == ValueType.Bool.value:
+                val_tup = (v.name, v.bool_value)
+            else:
+                continue
+            values.append(val_tup)
+
+        return values
+
+    def fifos(
+        self
+    ) -> List[Fifo]:
+
+        response = self.client._exec_request(
+            self.client._stub.ListFifos,
+            ListFifosRequest,
+            {"collection": self.name}
+        )
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed listing fifos")
+        return [Fifo(s.name, ValueType(s.val_type), s.max_size, self) for s in response.fifos]
+
+    def create_fifos(
+        self,
+        fifos: Iterable[Tuple[str, ValueType, Optional[int]]]
+    ) -> Dict[str, List[str]]:
+
+        response = self.client._exec_request(
+            self.client._stub.CreateFifos,
+            CreateFifosRequest,
+            {"collection": self.name,
+             "fifos": [FifoMeta(name=name, val_type=vtype.value, max_size=max_size) for name, vtype, max_size in fifos]}
+        )
+
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed creating fifos")
+        return {
+            "already_exists": response.already_exists
+        }
+
+    def delete_fifos(
+        self,
+        names: Iterable[str]
+    ) -> Dict[str, List[str]]:
+
+        response = self.client._exec_request(
+            self.client._stub.DeleteFifos,
+            DeleteFifosRequest,
+            {"collection": self.name, "names": names}
+        )
+
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed deleting fifos")
+
+        return {
+            "not_found": response.not_found
+        }
+
+    def fifos_push(
+        self,
+        values: Iterable[Tuple[str, Iterable[Union[int, float, str, bool]]]]
+    ) -> Dict:
+
+        fifo_values = []
+        types_map = {
+            int: "int_value",
+            float: "float_value",
+            str: "str_value",
+            bool: "bool_value",
+        }
+        names = []
+        for name, vals in values:
+            if not vals:
+                continue
+            kw = {"name": name, types_map[type(vals[0])]: vals}
+            fifo_values.append(FifoValue(**kw))
+            names.append(name)
+
+        req_kw = {"collection": self.name, "values": fifo_values}
+        response = self.client._exec_request(
+            self.client._stub.PushFifos,
+            PushFifosRequest,
+            req_kw
+        )
+
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed pushing fifos")
+
+        return {
+            "not_found": response.not_found,
+            "invalid_type": response.invalid_type,
+            "non_inserted": {name: ni for name, ni in zip(names, response.non_inserted)}
+        }
+
+    def fifos_pull(
+        self,
+        names: Iterable[Union[str, Tuple[str, int]]],
+    ) -> List[Tuple[str, List[Union[int, float, str, bool]]]]:
+
+        names_counts = []
+        for x in names:
+            if isinstance(x, str):
+                names_counts.append(FifoNamesCount(name=x, n=1))
+            else:
+                names_counts.append(FifoNamesCount(name=x[0], n=x[1]))
+
+        response = self.client._exec_request(
+            self.client._stub.PullFifos,
+            PullFifosRequest,
+            {"collection": self.name,
+             "names_counts": names_counts}
+        )
+
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed pulling fifos")
+
+        values = []
+        for v in response.values:
+            if v.val_type == ValueType.Int.value:
+                val_tup = (v.name, v.int_value)
+            elif v.val_type == ValueType.Float.value:
+                val_tup = (v.name, v.float_value)
+            elif v.val_type == ValueType.String.value:
+                val_tup = (v.name, v.str_value)
+            elif v.val_type == ValueType.Bool.value:
+                val_tup = (v.name, v.bool_value)
+            else:
+                continue
+            values.append(val_tup)
+
+        return values
+
+    def sorted_lists(
+        self
+    ) -> List[SortedList]:
+
+        response = self.client._exec_request(
+            self.client._stub.ListSortedLists,
+            ListSortedListsRequest,
+            {"collection": self.name}
+        )
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed listing sorted lists")
+        return [SortedList(s.name, ValueType(s.val_type), s.max_size, self) for s in response.sorted_lists]
+
+    def create_sorted_lists(
+        self,
+        sorted_lists: Iterable[Tuple[str, ValueType, Optional[int]]]
+    ) -> Dict[str, List[str]]:
+
+        response = self.client._exec_request(
+            self.client._stub.CreateSortedLists,
+            CreateSortedListsRequest,
+            {"collection": self.name,
+             "sorted_lists": [SortedListMeta(name=name, val_type=vtype.value, max_size=max_size)
+                              for name, vtype, max_size in sorted_lists]}
+        )
+
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed creating sorted lists")
+        return {
+            "already_exists": response.already_exists
+        }
+
+    def delete_sorted_lists(
+        self,
+        names: Iterable[str]
+    ) -> Dict[str, List[str]]:
+
+        response = self.client._exec_request(
+            self.client._stub.DeleteSortedLists,
+            DeleteSortedListsRequest,
+            {"collection": self.name, "names": names}
+        )
+
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed deleting sorted lists")
+
+        return {
+            "not_found": response.not_found
+        }
+
+    def sorted_lists_insert(
+        self,
+        values: Iterable[Tuple[str, Iterable[Union[int, float, str, bool]]]]
+    ) -> Dict:
+
+        sorted_list_values = []
+        types_map = {
+            int: "int_value",
+            float: "float_value",
+            str: "str_value",
+            bool: "bool_value",
+        }
+        names = []
+        for name, vals in values:
+            if not vals:
+                continue
+            kw = {"name": name, types_map[type(vals[0])]: vals}
+            sorted_list_values.append(SortedListValue(**kw))
+            names.append(name)
+
+        req_kw = {"collection": self.name, "values": sorted_list_values}
+        response = self.client._exec_request(
+            self.client._stub.InsertSortedLists,
+            InsertSortedListsRequest,
+            req_kw
+        )
+
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed pushing sorted lists")
+
+        return {
+            "not_found": response.not_found,
+            "invalid_type": response.invalid_type,
+            "non_inserted": {name: ni for name, ni in zip(names, response.non_inserted)}
+        }
+
+    def sorted_lists_biggest(
+        self,
+        names: Iterable[Union[str, Tuple[str, int]]],
+        remove: bool
+    ) -> List[Tuple[str, List[Union[int, float, str, bool]]]]:
+
+        names_counts = []
+        for x in names:
+            if isinstance(x, str):
+                names_counts.append(SortedListNamesCount(name=x, n=1, remove=remove))
+            else:
+                names_counts.append(SortedListNamesCount(name=x[0], n=x[1], remove=remove))
+
+        response = self.client._exec_request(
+            self.client._stub.BiggestSortedLists,
+            BiggestSortedListsRequest,
+            {"collection": self.name,
+             "names_counts": names_counts}
+        )
+
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed reading biggest in sorted lists")
+
+        values = []
+        for v in response.values:
+            if v.val_type == ValueType.Int.value:
+                val_tup = (v.name, v.int_value)
+            elif v.val_type == ValueType.Float.value:
+                val_tup = (v.name, v.float_value)
+            elif v.val_type == ValueType.String.value:
+                val_tup = (v.name, v.str_value)
+            elif v.val_type == ValueType.Bool.value:
+                val_tup = (v.name, v.bool_value)
+            else:
+                continue
+            values.append(val_tup)
+
+        return values
+
+    def sorted_lists_smallest(
+        self,
+        names: Iterable[Union[str, Tuple[str, int]]],
+        remove: bool
+    ) -> List[Tuple[str, List[Union[int, float, str, bool]]]]:
+
+        names_counts = []
+        for x in names:
+            if isinstance(x, str):
+                names_counts.append(SortedListNamesCount(name=x, n=1, remove=remove))
+            else:
+                names_counts.append(SortedListNamesCount(name=x[0], n=x[1], remove=remove))
+
+        response = self.client._exec_request(
+            self.client._stub.SmallestSortedLists,
+            SmallestSortedListsRequest,
+            {"collection": self.name,
+             "names_counts": names_counts}
+        )
+
+        status = Status(response.status)
+        if status != Status.Ok:
+            raise status.as_exception("Failed reading smallest in sorted lists")
+
+        values = []
+        for v in response.values:
+            if v.val_type == ValueType.Int.value:
+                val_tup = (v.name, v.int_value)
+            elif v.val_type == ValueType.Float.value:
+                val_tup = (v.name, v.float_value)
+            elif v.val_type == ValueType.String.value:
+                val_tup = (v.name, v.str_value)
+            elif v.val_type == ValueType.Bool.value:
                 val_tup = (v.name, v.bool_value)
             else:
                 continue

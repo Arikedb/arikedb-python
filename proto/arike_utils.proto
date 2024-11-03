@@ -37,12 +37,8 @@ enum Event {
 }
 
 enum ValType {
-    TS_INT = 0;
-    TS_FLOAT = 1;
-    TS_STRING = 2;
-    TS_BOOL = 3;
-    STK_INT = 4;
-    STK_FLOAT = 5;
-    STK_STRING = 6;
-    STK_BOOL = 7;
+    INT = 0;
+    FLOAT = 1;
+    STRING = 2;
+    BOOL = 3;
 }

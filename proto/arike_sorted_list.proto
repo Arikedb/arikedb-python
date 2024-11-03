@@ -1,0 +1,86 @@
+syntax = "proto3";
+package arike_pb;
+
+import "arike_utils.proto";
+
+message SortedListMeta {
+    string name = 1;
+    ValType val_type = 2;
+    optional uint64 max_size = 3;
+}
+
+message SortedListNamesCount {
+    string name = 1;
+    uint32 n = 2;
+    bool remove = 3;
+}
+
+message SortedListValue {
+    string name = 1;
+    optional ValType val_type = 2;
+    repeated int64 int_value = 3;
+    repeated double float_value = 4;
+    repeated string str_value = 5;
+    repeated bool bool_value = 6;
+}
+
+message CreateSortedListsRequest {
+    string collection = 1;
+    repeated SortedListMeta sorted_lists = 2;
+}
+
+message CreateSortedListsResponse {
+    StatusCode status = 1;
+    repeated string already_exists = 2;
+}
+
+message DeleteSortedListsRequest {
+    string collection = 1;
+    repeated string names = 2;
+}
+
+message DeleteSortedListsResponse {
+    StatusCode status = 1;
+    repeated string not_found = 2;
+}
+
+message ListSortedListsRequest {
+    string collection = 1;
+}
+
+message ListSortedListsResponse {
+    StatusCode status = 1;
+    repeated SortedListMeta sorted_lists = 2;
+}
+
+message InsertSortedListsRequest {
+    string collection = 1;
+    repeated SortedListValue values = 2;
+}
+
+message InsertSortedListsResponse {
+    StatusCode status = 1;
+    repeated string not_found = 2;
+    repeated string invalid_type = 3;
+    repeated uint64 non_inserted = 4;
+}
+
+message BiggestSortedListsRequest {
+    string collection = 1;
+    repeated SortedListNamesCount names_counts = 2;
+}
+
+message BiggestSortedListsResponse {
+    StatusCode status = 1;
+    repeated SortedListValue values = 2;
+}
+
+message SmallestSortedListsRequest {
+    string collection = 1;
+    repeated SortedListNamesCount names_counts = 2;
+}
+
+message SmallestSortedListsResponse {
+    StatusCode status = 1;
+    repeated SortedListValue values = 2;
+}

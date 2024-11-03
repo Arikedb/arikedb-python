@@ -3,18 +3,18 @@ package arike_pb;
 
 import "arike_utils.proto";
 
-message StackMeta {
+message FifoMeta {
     string name = 1;
     ValType val_type = 2;
     optional uint64 max_size = 3;
 }
 
-message StackNamesCount {
+message FifoNamesCount {
     string name = 1;
     uint32 n = 2;
 }
 
-message StackValue {
+message FifoValue {
     string name = 1;
     optional ValType val_type = 2;
     repeated int64 int_value = 3;
@@ -23,53 +23,53 @@ message StackValue {
     repeated bool bool_value = 6;
 }
 
-message CreateStacksRequest {
+message CreateFifosRequest {
     string collection = 1;
-    repeated StackMeta stacks = 2;
+    repeated FifoMeta fifos = 2;
 }
 
-message CreateStacksResponse {
+message CreateFifosResponse {
     StatusCode status = 1;
     repeated string already_exists = 2;
 }
 
-message DeleteStacksRequest {
+message DeleteFifosRequest {
     string collection = 1;
     repeated string names = 2;
 }
 
-message DeleteStacksResponse {
+message DeleteFifosResponse {
     StatusCode status = 1;
     repeated string not_found = 2;
 }
 
-message ListStacksRequest {
+message ListFifosRequest {
     string collection = 1;
 }
 
-message ListStacksResponse {
+message ListFifosResponse {
     StatusCode status = 1;
-    repeated StackMeta stacks = 2;
+    repeated FifoMeta fifos = 2;
 }
 
-message PutStacksRequest {
+message PushFifosRequest {
     string collection = 1;
-    repeated StackValue values = 2;
+    repeated FifoValue values = 2;
 }
 
-message PutStacksResponse {
+message PushFifosResponse {
     StatusCode status = 1;
     repeated string not_found = 2;
     repeated string invalid_type = 3;
     repeated uint64 non_inserted = 4;
 }
 
-message PopStacksRequest {
+message PullFifosRequest {
     string collection = 1;
-    repeated StackNamesCount names_counts = 2;
+    repeated FifoNamesCount names_counts = 2;
 }
 
-message PopStacksResponse {
+message PullFifosResponse {
     StatusCode status = 1;
-    repeated StackValue values = 2;
+    repeated FifoValue values = 2;
 }

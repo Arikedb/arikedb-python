@@ -5,8 +5,10 @@ set -e
 python -m grpc_tools.protoc -I=proto --python_out=. --grpc_python_out=. proto/arike_main.proto
 python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_auth.proto
 python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_collection.proto
-python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_ts_variable.proto
+python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_fifo.proto
+python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_sorted_list.proto
 python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_stack.proto
+python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_ts_variable.proto
 python -m grpc_tools.protoc -I=proto --python_out=. proto/arike_utils.proto
 
 mv *_pb2.py arikedb/

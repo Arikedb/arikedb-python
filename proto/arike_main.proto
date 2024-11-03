@@ -5,6 +5,8 @@ import "arike_auth.proto";
 import "arike_collection.proto";
 import "arike_ts_variable.proto";
 import "arike_stack.proto";
+import "arike_fifo.proto";
+import "arike_sorted_list.proto";
 
 service ArikedbRPC {
 
@@ -24,6 +26,19 @@ service ArikedbRPC {
     rpc ListStacks (ListStacksRequest) returns (ListStacksResponse);
     rpc PutStacks (PutStacksRequest) returns (PutStacksResponse);
     rpc PopStacks (PopStacksRequest) returns (PopStacksResponse);
+
+    rpc CreateFifos (CreateFifosRequest) returns (CreateFifosResponse);
+    rpc DeleteFifos (DeleteFifosRequest) returns (DeleteFifosResponse);
+    rpc ListFifos (ListFifosRequest) returns (ListFifosResponse);
+    rpc PushFifos (PushFifosRequest) returns (PushFifosResponse);
+    rpc PullFifos (PullFifosRequest) returns (PullFifosResponse);
+
+    rpc CreateSortedLists (CreateSortedListsRequest) returns (CreateSortedListsResponse);
+    rpc DeleteSortedLists (DeleteSortedListsRequest) returns (DeleteSortedListsResponse);
+    rpc ListSortedLists (ListSortedListsRequest) returns (ListSortedListsResponse);
+    rpc InsertSortedLists (InsertSortedListsRequest) returns (InsertSortedListsResponse);
+    rpc BiggestSortedLists (BiggestSortedListsRequest) returns (BiggestSortedListsResponse);
+    rpc SmallestSortedLists (SmallestSortedListsRequest) returns (SmallestSortedListsResponse);
 
     rpc Authenticate (AuthenticateRequest) returns (AuthenticateResponse);
 }

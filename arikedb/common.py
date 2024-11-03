@@ -2,18 +2,11 @@ from enum import Enum
 from typing import Optional
 
 
-class TsVarType(Enum):
-    TsInt = 0
-    TsFloat = 1
-    TsString = 2
-    TsBool = 3
-
-
-class StkType(Enum):
-    StkInt = 4
-    StkFloat = 5
-    StkString = 6
-    StkBool = 7
+class ValueType(Enum):
+    Int = 0
+    Float = 1
+    String = 2
+    Bool = 3
 
 
 class Event(Enum):
