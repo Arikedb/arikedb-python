@@ -1,48 +1,62 @@
 # ArikeDB Python Library
 
-Welcome to the ArikeDB Python library! This library provides an interface to interact with the Arike Database, an advanced real-time database solution. This documentation will guide you through the process of setting up and using the library effectively.
+Welcome to the ArikeDB Python library! This library provides an interface to interact with the Arike Database,
+an advanced real-time database solution. This documentation will guide you through the process of setting up and using the library effectively.
 
-## Getting Started
+## Installation
 
-### Installation
-
-To use the ArikeDB Rust library, install it using pip:
+To use the ArikeDB python library, install it using pip:
 
 ```bash
 ~$ pip install arikedb
 ```
 
-### Connecting to ArikeDB
+## Connecting to ArikeDB
 
-To connect to an ArikeDB server instance, bring `ArikedbClient` into scope, instantiate it and call the `connect` method.
-
-#### Basic Connection
-
-```python
-from arikedb import ArikedbClient
-
-
-if __name__ == "__main__":
-    client = ArikedbClient().connect(host="127.0.0.1", port=6923)
-```
-
-#### Connection with Authentication
-
-If the server requires authentication, you need to authenticate after connecting.
+To connect to an ArikeDB server instance, bring `Arikedb` class into scope and create an instance.
+The new instance will allow you connect and disconnect using the methods with those names or using it as
+a context manager:
 
 ```python
-from arikedb import ArikedbClient
-
-
-if __name__ == "__main__":
-    client = ArikedbClient().connect(host="127.0.0.1", port=6923)
-    client.authenticate(username="username", password="password")
+from arikedb import Arikedb, Collection, ValueType
 ```
 
-### Creating Collections
+### Using *connect* and *disconnect* methods
+```python
+client = Arikedb(host="127.0.0.1")
+client.connect()
+# ... Here you can use the client instance
+#     and any other object to read and write
+#     in the database
+client.disconnect()
+```
 
-ArikeDB organizes data into collections. Each collection has a name and a set of variables. To create multiple collections in a single call:
+### Using client as a context manager
+When using the client as a context manager, it will call *connect* and *disconnect* methods under the hood
+```python
+with Arikedb(host="127.0.0.1") as client:
+    # ... Here you can use the client instance
+    #     and any other object to read and write
+    #     in the database
+```
 
+### Possible connection parameters with their default values
+```python
+host: str = "127.0.0.1"
+port: int = 6923
+username: Optional[str] = None
+password: Optional[str] = None
+use_ssl_tls: bool = False
+ca_path: Optional[str] = None
+cert_path: Optional[str] = None
+key_path: Optional[str] = None
+```
+
+## Collections
+
+ArikeDB organizes data into collections. Each collection has a name and can contain some data structures
+
+### Creating collections
 ```python
 client.create_collections(names=["collection1", "collection2", "collection3", "collection4"])
 ```
@@ -56,122 +70,199 @@ client.delete_collections(names=["collection3", "collection4"])
 ### Listing Collections
 
 ```python
-collections = client.list_collections().collections
-for collection in collections:
-    print(collection.__dict__)
+for collection in client.collections:
+    print(collection.name)
 ```
-Output:
+Expected Output:
 ```
-{'name': 'collection1'}
-{'name': 'collection2'}
+collection1
+collection2
 ```
 
-### Creating Variables
+## Data structures
+Currently arikedb collections support next data structures
+ - Time Series Variable
+ - Stack
+ - Fifo
+ - Sorted List
+
+### Time Series Variable
+
+First, let's create some variables in the collection **collection1**
+
+To get the **collection1** instance we have two options
+ - List all collections and chose the one with that name
 
 ```python
-client.create_variables(
-    collection="collection1",
-    variables=[
-        Variable(name="var1", vtype=VariableType.I32, buffer_size=10),
-        {"name": "var2", "vtype": VariableType.I32, "buffer_size": 5},
-        Variable(name="var3", vtype=VariableType.I32, buffer_size=10),
-        Variable(name="var4", vtype=VariableType.I32, buffer_size=10),
+# Assuming there is a `collection1`
+collection1 = [coll for coll in client.collections if coll.name == "collection1"][0]
+```
+ - Just create an instance with that name giving it the client reference
+
+```python
+# Assuming there is a `collection1`
+collection1 = Collection("collection1", client)
+```
+
+Once we have the collection we can create some time series variables. These variables allows us to store real time typed values with high availability over the network.
+
+```python
+collection1.create_ts_variables(
+    [
+        ("var1", ValueType.Int),
+        ("var2", ValueType.Float),
+        ("var3", ValueType.String),
+        ("var4", ValueType.Bool),
     ]
 )
 ```
 
-### Deleting Variables
+Now let's list the created variables
 
 ```python
-client.delete_variables(
-    collection="collection1",
-    variables=["var3", "var4"]
-)
+for var in collection1.ts_variables:
+    print(f"{var.name}: type: {var.vtype}")
+```
+Expected Output:
+```
+var1: type: ValueType.Int
+var2: type: ValueType.Float
+var3: type: ValueType.String
+var4: type: ValueType.Bool
 ```
 
-### Listing Variables
+Now we can remove some variables
 
 ```python
-variables = client.list_variables(collection="collection1").variables
-for variable in variables:
-    print(variable.__dict__)
+collection1.delete_ts_variables(["ts_var3", "ts_var4"])
+# And list them again
+for var in collection1.ts_variables:
+    print(f"{var.name}: type: {var.vtype}")
 ```
-Output:
+Expected Output:
 ```
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'buffer_size': 10}
-{'name': 'var2', 'vtype': <VariableType.I32: 2>, 'buffer_size': 5}
+var1: type: ValueType.Int
+var2: type: ValueType.Float
 ```
 
-### Setting Variables Values
+To set and get the value of one variable we can use the TsVariable instance. Similar to the collections, we have two options:
+
+ - List the collection variables and get the one with the required name
+```python
+var1 = [v for v in collection1.ts_variables if v.name == "var1"][0]
+```
+ - Or create the instance passing it the actual type and the collection reference
+```python
+var1 = TsVariable("var1", ValueType.Int, collection1)
+```
+
+Now, we can set and get the variable value
 
 ```python
-client.set_variables(
-    collection="collection1",
-    variables=["var1", "var2"],
-    epoch=Epoch.Microsecond,
-    timestamp=int(time.time() * 1e6),
-    values=[4, 7]
-)
+# To set the value we can optionally pass the timestamp in ns, or not to use the current timestamp
+var1.set(34, time.time_ns())
+var1.set(-98)
+
+# The get method returns a tuple with (var name, timestamp in ns, value)
+print(var1.get())
+```
+Expected Output:
+```
+('var1', 1731125259366534807, -98)
 ```
 
-### Getting Variables Values
+When we need to set and get many variables at the same time is much more efficient to make a simple api call by using the collection instance:
 
 ```python
-datapoints = client.get_variables(
-    collection="collection1",
-    variables=["var1", "var2"],
-    epoch=Epoch.Nanosecond,
-    derived_order=0
-).data_points
-for datapoint in datapoints:
-    print(datapoint.__dict__)
+collection1.create_ts_variables([(f"float_var{i}", ValueType.Float) for i in range(100)])
+
+collection1.ts_variables_set([(f"float_var{i}", random.random() * 10) for i in range(100)])
+
+for name, timestamp, value in collection1.ts_variables_get([f"var{i}" for i in range(100)]):
+    print(name, timestamp, value)
 ```
-Output:
+Expected Output:
 ```
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720990632467691000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 4}
-{'name': 'var2', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720990632467691000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 7}
+var0 1731125750334694996 9.749274644422355
+var1 1731125750334711871 1.276401297758929
+var2 1731125750334716141 3.772412342332755
+var3 1731125750334719579 3.4859678066917956
+var4 1731125750334725412 2.456353749978517
+var5 1731125750334729110 7.295265352772196
+var6 1731125750334733225 0.10315743003679989
+var7 1731125750334736923 1.0277357954831046
+var8 1731125750334741141 5.681074316239375
+
+........
+
 ```
 
-### Subscribe to Variables Events
-Events are generated over variables when they ar set and event condition happens.
+One of the best features of Time Series Variables are Event Subscriptions. You can subscribe multiple variables over multiple events. Available events are under enumerator **Event**:
 
 ```python
-def on_data(data_point):
-    print(data_point.__dict__)
+OnSet
+OnChange
+OnKeep
+OnRise
+OnFall
+OnValueReachVal
+OnValueEqVal
+OnValueLeaveVal
+OnValueDiffVal
+OnCrossHighLimit
+OnCrossLowLimit
+OnOverHighLimit
+OnUnderLowLimit
+OnValueReachRange
+OnValueInRange
+OnValueLeaveRange
+OnValueOutRange
+```
 
-client.subscribe_variables(
-    collection="collection1",
-    variables=["var1", "var2"],
+Let's make an example:
+
+```python
+collection1.variables_subscribe(
+    names=[f"var{i}" for i in range(3)],
     events=[
         VarEvent(Event.OnRise),
-        VarEvent(Event.OnValueEqVal, value="56")
+        VarEvent(Event.OnUnderLowLimit, float_low_limit=50.0),
     ],
-    callback=on_data,
-    thread_kwargs={"daemon": True}
+    callback=print,
+    callback_args=(" End Text",),
+    callback_kwargs={"end": "\n\n"}
 )
 
-for i in range(10):
-    client.set_variables(
-        collection="collection1",
-        variables=["var1", "var2"],
-        epoch=Epoch.Microsecond,
-        timestamp=int(time.time() * 1e6),
-        values=[(50 + i), (60 - i)]
-    )
+for i in range(100):
+    collection1.ts_variables_set([(f"var{i}", random.random() * 100) for i in range(3)])
     time.sleep(1)
 ```
-Output:
+Expected Output:
 ```
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992049653048000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 50}
-{'name': 'var2', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992049653048000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 60}
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992050668472000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 51}
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992051679201000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 52}
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992052686982000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 53}
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992053697670000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 54}
-{'name': 'var2', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992053697670000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 56}
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992054719111000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 55}
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992055729433000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 56}
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992056749812000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 57}
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992057773916000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 58}
-{'name': 'var1', 'vtype': <VariableType.I32: 2>, 'timestamp': 1720992058795081000, 'epoch': <Epoch.Nanosecond: 3>, 'value': 59}
+........
+
+('var0', 1731127595069756690, 3.5209475578207194)  End Text
+
+('var1', 1731127595069785440, 82.59999895955806)  End Text
+
+('var2', 1731127595069791221, 44.76482124800996)  End Text
+
+('var0', 1731127596081695621, 47.739687942724416)  End Text
+
+('var1', 1731127596081708225, 93.65447201838202)  End Text
+
+('var2', 1731127596081712495, 1.69536935524075)  End Text
+
+('var0', 1731127597095884839, 98.58611346783405)  End Text
+
+('var1', 1731127597095896766, 97.79476614542591)  End Text
+
+('var2', 1731127597095900516, 77.31499239759563)  End Text
+
+('var0', 1731127598173467368, 99.8804795300193)  End Text
+
+('var2', 1731127598173484712, 46.714103742400845)  End Text
+
+........
+
 ```

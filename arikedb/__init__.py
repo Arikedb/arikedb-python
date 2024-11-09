@@ -1,15 +1,17 @@
-from .arikedb import Collection, Arikedb, TsVariable, Stack
+from .arikedb import TsVariable, Stack, Fifo, SortedList, Collection, Arikedb
 from .common import ValueType, Event, VarEvent
 
-__version__ = "0.0.5"
+__version__ = "1.0.0"
 
 __all__ = [
     "__version__",
-    "Collection",
-    "Arikedb",
     "TsVariable",
     "Stack",
-    "ValueType",
+    "Fifo",
+    "SortedList",
+    "Collection",
+    "Arikedb",
     "Event",
     "VarEvent",
+    "ValueType",
 ]

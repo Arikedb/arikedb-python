@@ -15,6 +15,7 @@ from .arike_fifo_pb2 import FifoMeta, ListFifosRequest, CreateFifosRequest, Dele
     PushFifosRequest, PullFifosRequest, FifoValue, FifoNamesCount
 from .arike_sorted_list_pb2 import SortedListMeta, ListSortedListsRequest, CreateSortedListsRequest, DeleteSortedListsRequest, \
     InsertSortedListsRequest, BiggestSortedListsRequest, SmallestSortedListsRequest, SortedListValue, SortedListNamesCount
+from .arike_auth_pb2 import AuthenticateRequest
 from .arike_utils_pb2 import ValType
 
 
@@ -115,11 +116,15 @@ class Collection:
     def __init__(
         self,
         name: str,
-        client: Arikedb
+        client: Arikedb,
+        **kwargs
     ):
         self.name = name
         self.client = client
+        if not kwargs.get("dont_create"):
+            client.create_collections([name])
 
+    @property
     def ts_variables(
         self
     ) -> List[TsVariable]:
@@ -300,6 +305,7 @@ class Collection:
         t.start()
         return t
 
+    @property
     def stacks(
         self
     ) -> List[Stack]:
@@ -428,6 +434,7 @@ class Collection:
 
         return values
 
+    @property
     def fifos(
         self
     ) -> List[Fifo]:
@@ -556,6 +563,7 @@ class Collection:
 
         return values
 
+    @property
     def sorted_lists(
         self
     ) -> List[SortedList]:
@@ -733,6 +741,8 @@ class Arikedb:
         self,
         host: str = "127.0.0.1",
         port: int = 6923,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
         use_ssl_tls: bool = False,
         ca_path: Optional[str] = None,
         cert_path: Optional[str] = None,
@@ -757,6 +767,8 @@ class Arikedb:
         self._token = None
         self._host = host
         self._port = port
+        self._username = username
+        self._password = password
         self._use_ssl_tls = use_ssl_tls
         self._ca_path = ca_path
         self._cert_path = cert_path
@@ -801,6 +813,20 @@ class Arikedb:
 
         self._stub = ArikedbRPCStub(self._channel)
 
+        if self._username and self._password:
+            response = self._exec_request(
+                self._stub.Authenticate,
+                AuthenticateRequest,
+                {"username": self._username,
+                 "password": self._password}
+            )
+
+            status = Status(response.status)
+            if status != Status.Ok:
+                raise status.as_exception("Authentication failed")
+
+            self._token = response.token
+
         return self
 
     def disconnect(
@@ -829,6 +855,7 @@ class Arikedb:
 
         return response
 
+    @property
     def collections(
         self
     ) -> List[Collection]:
@@ -840,7 +867,7 @@ class Arikedb:
         status = Status(response.status)
         if status != Status.Ok:
             raise status.as_exception("Failed listing collections")
-        return [Collection(c.name, self) for c in response.collections]
+        return [Collection(c.name, self, dont_create=True) for c in response.collections]
 
     def create_collections(
         self,
