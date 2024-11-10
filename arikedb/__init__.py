@@ -1,7 +1,7 @@
 from .arikedb import TsVariable, Stack, Fifo, SortedList, Collection, Arikedb
 from .common import ValueType, Event, VarEvent
 
-__version__ = "1.0.1"
+__version__ = "1.0.1.2"
 
 __all__ = [
     "__version__",
