@@ -23,5 +23,7 @@ jobs:
     - name: Build package
       run: python setup.py bdist_wheel
     - name: Publish package
+      env:
+        TWINE_API_KEY: ${{ secrets.TWINE_API_KEY }}
       run: |
         twine upload dist/*
