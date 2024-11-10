@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 
 class ValueType(Enum):
@@ -74,32 +74,27 @@ class VarEvent:
     def __init__(
         self,
         event: Event,
-        str_value: Optional[str] = None,
-        str_low_limit: Optional[str] = None,
-        str_high_limit: Optional[str] = None,
-        int_value: Optional[int] = None,
-        int_low_limit: Optional[int] = None,
-        int_high_limit: Optional[int] = None,
-        float_value: Optional[float] = None,
-        float_low_limit: Optional[float] = None,
-        float_high_limit: Optional[float] = None,
-        bool_value: Optional[bool] = None,
-        bool_low_limit: Optional[bool] = None,
-        bool_high_limit: Optional[bool] = None,
+        value: Optional[Union[int, float, str, bool]] = None,
+        low_limit: Optional[Union[int, float, str, bool]] = None,
+        high_limit: Optional[Union[int, float, str, bool]] = None,
     ):
+        v_class = type(value)
+        ll_class = type(low_limit)
+        hl_class = type(high_limit)
+
         self.event = event
-        self.str_value = str_value
-        self.str_low_limit = str_low_limit
-        self.str_high_limit = str_high_limit
-        self.int_value = int_value
-        self.int_low_limit = int_low_limit
-        self.int_high_limit = int_high_limit
-        self.float_value = float_value
-        self.float_low_limit = float_low_limit
-        self.float_high_limit = float_high_limit
-        self.bool_value = bool_value
-        self.bool_low_limit = bool_low_limit
-        self.bool_high_limit = bool_high_limit
+        self.str_value = value if v_class == str else None
+        self.str_low_limit = low_limit if ll_class == str else None
+        self.str_high_limit = high_limit if hl_class == str else None
+        self.int_value = value if v_class == int else None
+        self.int_low_limit = low_limit if ll_class == int else None
+        self.int_high_limit = high_limit if hl_class == int else None
+        self.float_value = value if v_class == float else None
+        self.float_low_limit = low_limit if ll_class == float else None
+        self.float_high_limit = high_limit if hl_class == float else None
+        self.bool_value = value if v_class == bool else None
+        self.bool_low_limit = low_limit if ll_class == bool else None
+        self.bool_high_limit = high_limit if hl_class == bool else None
 
 
 class LicenseExpired(Exception):

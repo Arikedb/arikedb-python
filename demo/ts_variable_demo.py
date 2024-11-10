@@ -28,7 +28,7 @@ if __name__ == "__main__":
             names=[f"var{i}" for i in range(3)],
             events=[
                 VarEvent(Event.OnRise),
-                VarEvent(Event.OnUnderLowLimit, float_low_limit=50.0),
+                VarEvent(Event.OnUnderLowLimit, low_limit=50.0),
             ],
             callback=print,
             callback_args=(" End Text",),

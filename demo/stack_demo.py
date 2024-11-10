@@ -2,7 +2,7 @@ from arikedb import Arikedb, ValueType
 
 
 if __name__ == "__main__":
-    with Arikedb() as arikedb:
+    with Arikedb(username="ale", password="ale") as arikedb:
 
         arikedb.create_collections(["myCollection"])
         my_collection = arikedb.collection("myCollection")
