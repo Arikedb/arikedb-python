@@ -1,11 +1,21 @@
-from arikedb import Arikedb, ValueType, Collection
-import time
+from arikedb import Arikedb, ValueType
 
 
 if __name__ == "__main__":
-    with Arikedb(username="ale", password="qwe") as arikedb:
-        arikedb.create_collections(["Collection1", "Collection2"])
-        collA = Collection("CollectionA", arikedb)
+    with Arikedb() as arikedb:
 
-        for coll in arikedb.collections:
-            print(coll.name)
+        arikedb.create_collections(["myCollection"])
+        my_collection = arikedb.collection("myCollection")
+
+        my_collection.create_stacks([
+            ("StackA", ValueType.Float, 5),
+        ])
+
+        stack_a = my_collection.stack("StackA")
+
+        stack_a.put([1.0, 2.3])
+        stack_a.put([3.1, 4.3, 5.6])
+
+        print(stack_a.pop(3))
+
+        print(stack_a.pop())

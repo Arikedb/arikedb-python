@@ -45,6 +45,7 @@ message DeleteStacksResponse {
 
 message ListStacksRequest {
     string collection = 1;
+    optional string pattern = 2;
 }
 
 message ListStacksResponse {

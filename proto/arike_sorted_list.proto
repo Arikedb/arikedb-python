@@ -46,6 +46,7 @@ message DeleteSortedListsResponse {
 
 message ListSortedListsRequest {
     string collection = 1;
+    optional string pattern = 2;
 }
 
 message ListSortedListsResponse {

@@ -1,10 +1,10 @@
 import random
-from arikedb import Arikedb, ValueType, Event, VarEvent, Collection, TsVariable, Stack, Fifo, SortedList
+from arikedb import Arikedb, ValueType, Event, VarEvent, Collection
 import time
 
 
 if __name__ == "__main__":
-    with Arikedb(host="10.0.0.174", username="arike", password="arike") as arikedb:
+    with Arikedb(host="localhost") as arikedb:
 
         arikedb.create_collections(["Collection1", "Collection2"])
 

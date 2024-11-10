@@ -4,8 +4,8 @@ from arikedb import Arikedb, Collection
 from redis import Redis
 
 N = 100_000
-HOST = "127.0.0.1"
-# HOST = "10.0.0.174"
+# HOST = "127.0.0.1"
+HOST = "10.0.0.174"
 WRITE = 0
 
 data = {

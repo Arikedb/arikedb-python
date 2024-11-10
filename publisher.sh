@@ -18,6 +18,6 @@ sed -i 's/import arike_/import arikedb.arike_/g' arikedb/arike_*_pb2*.py
 
 rm -rf dist build
 
-python3 setup.py sdist bdist_wheel
+# python3 setup.py sdist bdist_wheel
 
 # twine upload dist/*

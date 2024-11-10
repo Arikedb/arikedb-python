@@ -124,20 +124,28 @@ class Collection:
         if not kwargs.get("dont_create"):
             client.create_collections([name])
 
-    @property
     def ts_variables(
-        self
+        self,
+        pattern: Optional[str] = None
     ) -> List[TsVariable]:
 
         response = self.client._exec_request(
             self.client._stub.ListVariables,
             ListVariablesRequest,
-            {"collection": self.name}
+            {"collection": self.name, "pattern": pattern}
         )
         status = Status(response.status)
         if status != Status.Ok:
             raise status.as_exception("Failed to listing variables")
         return [TsVariable(v.name, ValueType(v.val_type), self) for v in response.variables]
+
+    def ts_variable(
+        self,
+        name: str
+    ) -> Optional[TsVariable]:
+
+        ts_variables = self.ts_variables(name)
+        return ts_variables[0] if len(ts_variables) > 0 else None
 
     def create_ts_variables(
         self,
@@ -305,20 +313,28 @@ class Collection:
         t.start()
         return t
 
-    @property
     def stacks(
-        self
+        self,
+        pattern: Optional[str] = None
     ) -> List[Stack]:
 
         response = self.client._exec_request(
             self.client._stub.ListStacks,
             ListStacksRequest,
-            {"collection": self.name}
+            {"collection": self.name, "pattern": pattern}
         )
         status = Status(response.status)
         if status != Status.Ok:
             raise status.as_exception("Failed listing stacks")
         return [Stack(s.name, ValueType(s.val_type), s.max_size, self) for s in response.stacks]
+
+    def stack(
+        self,
+        name: str
+    ) -> Optional[Stack]:
+
+        stacks = self.stacks(name)
+        return stacks[0] if len(stacks) > 0 else None
 
     def create_stacks(
         self,
@@ -434,20 +450,28 @@ class Collection:
 
         return values
 
-    @property
     def fifos(
-        self
+        self,
+        pattern: Optional[str] = None
     ) -> List[Fifo]:
 
         response = self.client._exec_request(
             self.client._stub.ListFifos,
             ListFifosRequest,
-            {"collection": self.name}
+            {"collection": self.name, "pattern": pattern}
         )
         status = Status(response.status)
         if status != Status.Ok:
             raise status.as_exception("Failed listing fifos")
         return [Fifo(s.name, ValueType(s.val_type), s.max_size, self) for s in response.fifos]
+
+    def fifo(
+        self,
+        name: str
+    ) -> Optional[Fifo]:
+
+        fifos = self.fifos(name)
+        return fifos[0] if len(fifos) > 0 else None
 
     def create_fifos(
         self,
@@ -563,20 +587,28 @@ class Collection:
 
         return values
 
-    @property
     def sorted_lists(
-        self
+        self,
+        pattern: Optional[str] = None
     ) -> List[SortedList]:
 
         response = self.client._exec_request(
             self.client._stub.ListSortedLists,
             ListSortedListsRequest,
-            {"collection": self.name}
+            {"collection": self.name, "pattern": pattern}
         )
         status = Status(response.status)
         if status != Status.Ok:
             raise status.as_exception("Failed listing sorted lists")
         return [SortedList(s.name, ValueType(s.val_type), s.max_size, self) for s in response.sorted_lists]
+
+    def sorted_list(
+        self,
+        name: str
+    ) -> Optional[SortedList]:
+
+        sorted_lists = self.sorted_lists(name)
+        return sorted_lists[0] if len(sorted_lists) > 0 else None
 
     def create_sorted_lists(
         self,
@@ -855,19 +887,28 @@ class Arikedb:
 
         return response
 
-    @property
     def collections(
-        self
+        self,
+        pattern: Optional[str] = None
     ) -> List[Collection]:
 
         response = self._exec_request(
             self._stub.ListCollections,
             ListCollectionsRequest,
+            {"pattern": pattern}
         )
         status = Status(response.status)
         if status != Status.Ok:
             raise status.as_exception("Failed listing collections")
         return [Collection(c.name, self, dont_create=True) for c in response.collections]
+
+    def collection(
+        self,
+        name: str
+    ) -> Optional[Collection]:
+
+        collections = self.collections(pattern=name)
+        return collections[0] if len(collections) > 0 else None
 
     def create_collections(
         self,

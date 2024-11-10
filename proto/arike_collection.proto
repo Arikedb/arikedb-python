@@ -26,7 +26,9 @@ message DeleteCollectionsResponse {
     repeated string not_found = 2;
 }
 
-message ListCollectionsRequest {}
+message ListCollectionsRequest {
+    optional string pattern = 1;
+}
 
 message ListCollectionsResponse {
     StatusCode status = 1;
