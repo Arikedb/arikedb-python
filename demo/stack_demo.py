@@ -4,7 +4,7 @@ from arikedb import Arikedb, ValueType
 if __name__ == "__main__":
     with Arikedb(username="ale", password="ale") as arikedb:
 
-        arikedb.create_collections(["myCollection"])
+        arikedb.create_collections(["myCollection", "myCollection2"])
         my_collection = arikedb.collection("myCollection")
 
         my_collection.create_stacks([

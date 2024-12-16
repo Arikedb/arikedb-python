@@ -35,14 +35,14 @@ if __name__ == "__main__":
         print("==== Random numbers: =====")
         print(nums)
 
-        rand_nums_list.insert(nums)
+        rand_nums_list.insert([5, 0, 9, -10, -3, -90, 87, 5, -93, 12])
         names_list.insert(names)
 
         print("\n==== Smallest 5 numbers: =====")
-        print(rand_nums_list.smallest(5))
+        print(rand_nums_list.smallest(50))
 
         print("==== Biggest 5 numbers: =====")
-        print(rand_nums_list.biggest(5))
+        print(rand_nums_list.biggest(50))
 
         print("\n==== Sorted names: =====")
         for name in names_list.smallest(100)[1]:
